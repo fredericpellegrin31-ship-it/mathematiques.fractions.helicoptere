@@ -30,9 +30,8 @@
         }
 
         canvas {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
+            width: 100%;
+            height: 100%;
             display: block;
         }
 
@@ -162,7 +161,7 @@
                 <h2 class="text-xl md:text-2xl text-blue-600 font-bold mb-4">Spécial Fractions</h2>
                 <div class="text-sm md:text-base text-gray-700 mb-6">
                     <p>Choisis la bonne image pour éteindre le feu !</p>
-                    <p class="font-bold text-red-500 mt-2">15 questions pour sauver la forêt.</p>
+                    <p class="font-bold text-red-500 mt-2">12 questions pour sauver la forêt.</p>
                 </div>
                 <div class="flex flex-col gap-3">
                     <button class="bg-blue-500 text-white p-4 rounded-xl font-bold shadow-lg text-lg" onclick="demarrerJeu(1)">NIVEAU 1 (1/2, 1/3, 1/4)</button>
@@ -175,7 +174,7 @@
         <div id="game-ui" class="hidden">
             <div id="time-bar-container"><div id="time-bar"></div></div>
             <div class="absolute top-2 right-4 bg-white/90 px-3 py-1 rounded-xl border-2 border-purple-400 font-bold text-sm md:text-lg z-20">
-                Q: <span id="question-count">1</span>/15
+                Q: <span id="question-count">1</span>/12
             </div>
             <div id="ui-question">
                 <div id="question-box"><span id="question-text"></span></div>
@@ -191,10 +190,23 @@
 
         <!-- Fin -->
         <div id="end-screen" class="overlay hidden">
-            <div class="modal border-yellow-400">
-                <h2 id="end-title" class="text-3xl font-bold mb-2 text-blue-600">Bravo !</h2>
-                <p id="end-score" class="text-xl font-bold mb-6">Score : 0 / 15</p>
-                <button class="bg-green-500 text-white px-8 py-3 rounded-xl text-xl font-bold" onclick="location.reload()">Rejouer</button>
+            <div class="modal border-yellow-400 flex flex-col items-center">
+                
+                <!-- Coupe de champion (Cachée par défaut) -->
+                <div id="end-cup" class="hidden w-full flex justify-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="#fbbf24" class="w-24 h-24 drop-shadow-md">
+                        <path d="M400 32H48C21.5 32 0 53.5 0 80v16c0 41.4 33.6 75 75 75h22.6c18 34.3 49.3 59.7 87.7 70.4L166 331.6c-4.4 12.3-17.6 19.3-30.7 16.1l-36-8.9c-15.6-3.9-31.5 5.6-35.4 21.3l-5.6 22.5c-3.9 15.6 5.6 31.5 21.3 35.4l112 27.8c15.6 3.9 31.5-5.6 35.4-21.3l5.6-22.5c3.9-15.6-5.6-31.5-21.3-35.4l-36-8.9c-13.1-3.2-22.5-15.4-20.9-28.7L181 241.4c34.8 0 66-14.8 88-38.5 22 23.7 53.2 38.5 88 38.5l26.6 87.5c1.6 13.3-7.8 25.5-20.9 28.7l-36 8.9c-15.6 3.9-25.2 19.8-21.3 35.4l5.6 22.5c3.9 15.6 19.8 25.2 35.4 21.3l112-27.8c15.6-3.9 25.2-19.8 21.3-35.4l-5.6-22.5c-3.9-15.6-19.8-25.2-35.4-21.3l-36-8.9c-13.1-3.2-26.3-10.3-30.7-22.6l-19.3-90.2c38.4-10.7 69.7-36.1 87.7-70.4H437c41.4 0 75-33.6 75-75V80c0-26.5-21.5-48-48-48zM75 123c-15.4 0-28-12.6-28-28V80h63.2c-5.4 13.1-8.2 27.6-8.2 43v2.8L75 123zm362-28c0 15.4-12.6 28-28 28h-27.1v-2.8c0-15.4-2.8-29.9-8.2-43H437v22.8z"/>
+                    </svg>
+                </div>
+
+                <h2 id="end-title" class="text-3xl font-bold mb-4 text-blue-600">Bravo !</h2>
+                
+                <!-- Système d'étoiles -->
+                <div id="end-stars" class="flex justify-center gap-2 mb-4 w-full">
+                </div>
+
+                <p id="end-score" class="text-xl font-bold mb-6 text-gray-700">Score : 0 / 12</p>
+                <button class="bg-green-500 hover:bg-green-600 transition-colors text-white px-8 py-3 rounded-xl text-xl font-bold shadow-lg" onclick="location.reload()">Rejouer</button>
             </div>
         </div>
 
@@ -214,18 +226,26 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const baseWidth = 1000;
-        const baseHeight = 750;
+        
+        let baseWidth = window.innerWidth;
+        let baseHeight = window.innerHeight;
+
+        // Hélicoptère initialisé au centre
+        let helico = { x: baseWidth/2, y: baseHeight * 0.35, targetX: baseWidth/2, etat: 'patrouille', vitesse: baseWidth * 0.4, tilt: 0 };
 
         function resize() {
+            baseWidth = window.innerWidth;
+            baseHeight = window.innerHeight;
             canvas.width = baseWidth;
             canvas.height = baseHeight;
+            helico.y = baseHeight * 0.35; // Maintient l'hélico à la bonne hauteur
+            helico.vitesse = baseWidth * 0.4;
         }
         window.addEventListener('resize', resize);
         resize();
 
         // État du jeu
-        const TOTAL_QUESTIONS = 15;
+        const TOTAL_QUESTIONS = 12;
         const DUREE_INITIALE = 150; 
         let timer = DUREE_INITIALE;
         let questionActive = 1;
@@ -238,7 +258,7 @@
         let indexReponseCorrecte = -1;
         let enAttente = false;
         let lastTime = 0;
-        let feux = [], nuages = [], gouttes = [], particulesFumee = [];
+        let feux = [], nuages = [], gouttes = [], particulesFumee = [], confettis = [];
 
         // Images
         const helicoImage = new Image();
@@ -250,8 +270,6 @@
         foretImage.src = 'forêt.png';
         let foretLoaded = false;
         foretImage.onload = () => foretLoaded = true;
-
-        let helico = { x: 500, y: 220, targetX: 500, etat: 'patrouille', vitesse: 350 };
 
         function fractionEnTexte(n, d) {
             const numerateurs = ["zéro", "Un", "Deux", "Trois", "Quatre", "Cinq", "Six"];
@@ -299,7 +317,7 @@
             document.getElementById('game-ui').classList.remove('hidden');
             let maxD = (niveau === 1) ? 4 : 6;
             for (let d = 2; d <= maxD; d++) for (let n = 1; n <= d; n++) poolFractions.push({n, d});
-            for(let i=0; i<6; i++) nuages.push({x: Math.random()*1000, y: 30+Math.random()*100, t: 30+Math.random()*40, v: 10+Math.random()*15});
+            for(let i=0; i<6; i++) nuages.push({x: Math.random()*baseWidth, y: baseHeight*0.05 + Math.random()*(baseHeight*0.15), t: 30+Math.random()*40, v: 10+Math.random()*15});
             
             setInterval(() => {
                 if (jeuFini || jeuEnPause || !jeuDemarre) return;
@@ -309,6 +327,10 @@
             }, 1000);
 
             genererQuestion();
+            
+            // On augmente le nombre de départs de feux initiaux
+            ajouterFeu();
+            ajouterFeu();
             ajouterFeu();
         }
 
@@ -366,60 +388,154 @@
 
         function terminerJeu() {
             jeuFini = true;
-            document.getElementById('end-screen').classList.remove('hidden');
             document.getElementById('game-ui').classList.add('hidden');
-            document.getElementById('end-score').innerText = `Score : ${score} / 15`;
+            document.getElementById('end-screen').classList.remove('hidden');
+            
+            // Calcul des étoiles
+            let nbEtoiles = 1;
+            if (score >= 6 && score <= 11) nbEtoiles = 2;
+            else if (score === 12) nbEtoiles = 3;
+
+            // Affichage des étoiles
+            const starsContainer = document.getElementById('end-stars');
+            starsContainer.innerHTML = '';
+            for(let i = 1; i <= 3; i++) {
+                let colorClass = i <= nbEtoiles ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]' : 'text-gray-200';
+                starsContainer.innerHTML += `
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="w-16 h-16 md:w-20 md:h-20 ${colorClass}">
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                    </svg>`;
+            }
+
+            // Affichage de la coupe et confettis pour un sans-faute
+            const endTitle = document.getElementById('end-title');
+            const endCup = document.getElementById('end-cup');
+            if (score === 12) {
+                endTitle.innerText = "CHAMPION !";
+                endTitle.className = "text-4xl font-extrabold mb-4 text-yellow-500 uppercase";
+                endCup.classList.remove('hidden');
+                
+                // Génération des confettis
+                const colors = ['#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#f472b6'];
+                for(let i = 0; i < 200; i++) {
+                    confettis.push({
+                        x: baseWidth / 2 + (Math.random() * 100 - 50),
+                        y: baseHeight + 20,
+                        vx: (Math.random() - 0.5) * baseWidth * 1.5,
+                        vy: -(Math.random() * baseHeight * 1.2 + 400),
+                        size: Math.random() * 8 + 6,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        rotation: Math.random() * 360,
+                        dr: (Math.random() - 0.5) * 20
+                    });
+                }
+            } else {
+                endTitle.innerText = score >= 6 ? "Bien joué !" : "Entraîne-toi encore !";
+                endTitle.className = "text-3xl font-bold mb-4 text-blue-600";
+            }
+            
+            document.getElementById('end-score').innerText = `Score : ${score} / 12`;
         }
 
         function ajouterFeu() {
-            if (feux.length < 4) feux.push({ x: 100 + Math.random()*800, y: 580, i: 20 });
+            if (feux.length < 6) feux.push({ x: baseWidth*0.1 + Math.random()*(baseWidth*0.8), y: baseHeight * 0.85, i: 20 });
         }
 
         function update(dt) {
-            if (!jeuDemarre || jeuFini || jeuEnPause) return;
+            if (!jeuDemarre || jeuEnPause) return;
+            
+            // Si le jeu est fini, on met à jour uniquement les confettis (s'il y en a)
+            if (jeuFini) {
+                if (confettis.length > 0) {
+                    confettis.forEach(c => {
+                        c.x += c.vx * dt;
+                        c.y += c.vy * dt;
+                        c.vy += 600 * dt; // Gravité
+                        c.vx *= 0.99; // Frottement
+                        c.rotation += c.dr;
+                    });
+                }
+                return;
+            }
+            
+            let oldX = helico.x;
+
             feux.forEach(f => {
-                f.i += 3 * dt;
-                if (Math.random() < f.i/100) particulesFumee.push({ x: f.x+(Math.random()*40-20), y: f.y, vx: Math.random()*10-5, vy: -60-Math.random()*50, t: 10+Math.random()*20, o: 0.6 });
+                f.i += 8 * dt; // Le feu grandit plus vite
+                if(f.i > 150) f.i = 150; // Limite d'intensité pour éviter d'envahir tout l'écran
+
+                // La fumée s'épaissit et s'élargit en fonction de l'intensité (f.i)
+                let chanceFumee = (f.i / 50) * dt * 40; 
+                let nbParticules = Math.floor(chanceFumee);
+                if(Math.random() < chanceFumee - nbParticules) nbParticules++;
+
+                for(let k=0; k<nbParticules; k++) {
+                    particulesFumee.push({ 
+                        x: f.x + (Math.random() * f.i - f.i/2), // S'étale plus si le feu est grand
+                        y: f.y - 10, 
+                        vx: Math.random()*20-10, 
+                        vy: -40 - Math.random()*(f.i/2), // Monte plus vite et plus haut
+                        t: 10 + f.i/4 + Math.random()*20, // Plus grosses particules
+                        o: 0.5 + Math.random()*0.4 
+                    });
+                }
             });
-            if (Math.random() < 0.05 * dt && feux.length < 3) ajouterFeu();
+
+            if (Math.random() < 0.08 * dt && feux.length < 5) ajouterFeu(); // Plus de chances de départs de feu
+
             for(let i=particulesFumee.length-1; i>=0; i--) {
                 let p = particulesFumee[i]; p.x += p.vx*dt; p.y += p.vy*dt; p.t += 10*dt; p.o -= 0.4*dt;
                 if (p.o <= 0) particulesFumee.splice(i, 1);
             }
-            nuages.forEach(n => { n.x += n.v*dt; if (n.x > 1100) n.x = -100; });
+            nuages.forEach(n => { n.x += n.v*dt; if (n.x > baseWidth+100) n.x = -100; });
             for(let i=gouttes.length-1; i>=0; i--) {
                 let g = gouttes[i]; g.y += g.vy*dt;
-                if (g.y > 580) { gouttes.splice(i, 1); feux.forEach(f => { if (Math.abs(f.x-g.x) < 80) f.i -= 3; }); }
+                if (g.y > baseHeight * 0.8) { 
+                    gouttes.splice(i, 1); 
+                    feux.forEach(f => { if (Math.abs(f.x-g.x) < 80) f.i -= 5; }); // Éteint plus efficacement vu que le feu est plus fort
+                }
             }
             feux = feux.filter(f => f.i > 5);
+
             if (helico.etat === 'patrouille') {
-                helico.x += ( (500 + Math.sin(Date.now()/2000)*400) - helico.x ) * 0.02;
+                helico.x += ( (baseWidth/2 + Math.sin(Date.now()/2000)*(baseWidth*0.35)) - helico.x ) * 0.02;
             } else if (helico.etat === 'en_route') {
                 let d = helico.targetX - helico.x;
                 if (Math.abs(d) < 10) {
                     helico.etat = 'largage';
-                    for(let i=0; i<40; i++) gouttes.push({ x: helico.x+(Math.random()*40-20), y: helico.y+30, vy: 300+Math.random()*200 });
+                    for(let i=0; i<40; i++) gouttes.push({ x: helico.x+(Math.random()*100-50), y: helico.y+30, vy: 300+Math.random()*200 });
                 } else helico.x += Math.sign(d) * helico.vitesse * dt;
             } else if (helico.etat === 'largage' && gouttes.length === 0) helico.etat = 'patrouille';
 
+            // Calcul de l'inclinaison de l'hélicoptère
+            let dx = helico.x - oldX;
+            // Une limite de rotation à ~15 degrés (0.25 radians)
+            let targetTilt = Math.max(-0.25, Math.min(0.25, dx * 0.04));
+            // Transition douce vers l'angle cible
+            helico.tilt = (helico.tilt || 0) + (targetTilt - (helico.tilt || 0)) * 0.15;
+
+            // Ajustement UI Dynamique (ne cache plus l'hélicoptère)
             const uiQ = document.getElementById('ui-question');
-            const rect = canvas.getBoundingClientRect();
-            const scale = rect.width / 1000;
-            uiQ.style.left = (rect.left + helico.x * scale - uiQ.offsetWidth/2) + "px";
-            uiQ.style.top = (rect.top + (helico.y - 140) * scale) + "px";
+            let leftPos = helico.x - uiQ.offsetWidth/2;
+            // Contraintes pour ne pas sortir de l'écran sur mobile
+            if (leftPos < 10) leftPos = 10;
+            if (leftPos + uiQ.offsetWidth > baseWidth - 10) leftPos = baseWidth - uiQ.offsetWidth - 10;
+            
+            uiQ.style.left = leftPos + "px";
+            uiQ.style.top = (helico.y - uiQ.offsetHeight - 40) + "px"; // Toujours au-dessus de l'hélico
         }
 
         function draw() {
             ctx.clearRect(0, 0, baseWidth, baseHeight);
             
-            // 1. Fond forêt
+            // 1. Fond forêt adapté à 100% de l'écran
             if (foretLoaded) {
                 ctx.drawImage(foretImage, 0, 0, baseWidth, baseHeight);
             } else {
-                ctx.fillStyle = '#4CAF50'; ctx.fillRect(0, 600, 1000, 150);
+                ctx.fillStyle = '#4CAF50'; ctx.fillRect(0, baseHeight*0.75, baseWidth, baseHeight*0.25);
             }
 
-            // 2. Nuages (par-dessus la forêt)
+            // 2. Nuages
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; 
             nuages.forEach(n => { 
                 ctx.beginPath(); 
@@ -430,19 +546,33 @@
                 ctx.fill(); 
             });
 
-            // 3. Fumée (pour repérer les feux)
+            // 3. Fumée
             particulesFumee.forEach(p => { ctx.fillStyle = `rgba(100, 100, 100, ${p.o})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.t, 0, Math.PI*2); ctx.fill(); });
-            
-            // Note: Les triangles rouges (feux) ont été supprimés ici pour ne laisser que la fumée.
             
             // 4. Gouttes
             ctx.fillStyle = '#3b82f6'; gouttes.forEach(g => { ctx.beginPath(); ctx.ellipse(g.x, g.y, 4, 8, 0, 0, Math.PI*2); ctx.fill(); });
             
-            // 5. Hélicoptère
+            // 5. Hélicoptère avec rotation
+            ctx.save();
+            ctx.translate(helico.x, helico.y);
+            ctx.rotate(helico.tilt || 0);
             if (helicoLoaded) {
-                ctx.drawImage(helicoImage, helico.x-80, helico.y-40, 160, 80);
+                ctx.drawImage(helicoImage, -80, -40, 160, 80);
             } else {
-                ctx.fillStyle = 'red'; ctx.fillRect(helico.x-40, helico.y-15, 80, 30);
+                ctx.fillStyle = 'red'; ctx.fillRect(-40, -15, 80, 30);
+            }
+            ctx.restore();
+
+            // 6. Pluie de confettis (si fin de partie avec un 12/12)
+            if (jeuFini && confettis.length > 0) {
+                confettis.forEach(c => {
+                    ctx.save();
+                    ctx.translate(c.x, c.y);
+                    ctx.rotate(c.rotation * Math.PI / 180);
+                    ctx.fillStyle = c.color;
+                    ctx.fillRect(-c.size/2, -c.size/2, c.size, c.size);
+                    ctx.restore();
+                });
             }
         }
 
