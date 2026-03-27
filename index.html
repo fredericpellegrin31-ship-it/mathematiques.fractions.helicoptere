@@ -26,7 +26,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 60%, #4CAF50 60%, #2E7D32 100%);
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
         }
 
         canvas {
@@ -79,7 +79,7 @@
             white-space: nowrap;
         }
 
-        /* Options Fractions adaptatives */
+        /* Options Fractions */
         #ui-options-container {
             position: absolute;
             bottom: 5%;
@@ -126,7 +126,7 @@
             height: 100%;
         }
 
-        /* Overlay */
+        /* Overlays */
         .overlay {
             position: absolute;
             inset: 0;
@@ -148,7 +148,6 @@
         }
 
         .hidden { display: none !important; }
-        .confetti { position: absolute; width: 10px; height: 10px; z-index: 100; }
     </style>
 </head>
 <body>
@@ -194,7 +193,6 @@
         <div id="end-screen" class="overlay hidden">
             <div class="modal border-yellow-400">
                 <h2 id="end-title" class="text-3xl font-bold mb-2 text-blue-600">Bravo !</h2>
-                <div id="reward-container" class="text-4xl mb-4"></div>
                 <p id="end-score" class="text-xl font-bold mb-6">Score : 0 / 15</p>
                 <button class="bg-green-500 text-white px-8 py-3 rounded-xl text-xl font-bold" onclick="location.reload()">Rejouer</button>
             </div>
@@ -205,13 +203,9 @@
             <div class="modal border-red-500">
                 <h2 class="text-3xl font-bold mb-4 text-red-600">Oups !</h2>
                 <p class="text-xl mb-4 text-gray-700">La bonne réponse pour :</p>
-                <div id="correct-question-display" class="text-3xl font-extrabold text-blue-600 mb-4 bg-blue-50 py-2 px-6 rounded-xl inline-block border-2 border-blue-200">
-                    <!-- Texte de la question injecté ici -->
-                </div>
+                <div id="correct-question-display" class="text-3xl font-extrabold text-blue-600 mb-4 bg-blue-50 py-2 px-6 rounded-xl inline-block border-2 border-blue-200"></div>
                 <p class="text-xl mb-4 text-gray-700">était :</p>
-                <div id="correct-answer-display" class="mx-auto w-40 h-40 mb-8 bg-gray-50 rounded-2xl p-4 border-4 border-gray-200 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">
-                    <!-- SVG injecté ici -->
-                </div>
+                <div id="correct-answer-display" class="mx-auto w-40 h-40 mb-8 bg-gray-50 rounded-2xl p-4 border-4 border-gray-200 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"></div>
                 <button class="bg-blue-500 hover:bg-blue-600 transition-colors text-white px-8 py-3 rounded-xl text-xl font-bold" onclick="continuerApresErreur()">Continuer</button>
             </div>
         </div>
@@ -220,8 +214,6 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        
-        // Configuration Responsive
         const baseWidth = 1000;
         const baseHeight = 750;
 
@@ -248,11 +240,16 @@
         let lastTime = 0;
         let feux = [], nuages = [], gouttes = [], particulesFumee = [];
 
-        // Assets
+        // Images
         const helicoImage = new Image();
         helicoImage.src = 'hélicoptère.png';
-        let helicoImageLoaded = false;
-        helicoImage.onload = () => helicoImageLoaded = true;
+        let helicoLoaded = false;
+        helicoImage.onload = () => helicoLoaded = true;
+
+        const foretImage = new Image();
+        foretImage.src = 'forêt.png';
+        let foretLoaded = false;
+        foretImage.onload = () => foretLoaded = true;
 
         let helico = { x: 500, y: 220, targetX: 500, etat: 'patrouille', vitesse: 350 };
 
@@ -304,8 +301,8 @@
             for (let d = 2; d <= maxD; d++) for (let n = 1; n <= d; n++) poolFractions.push({n, d});
             for(let i=0; i<6; i++) nuages.push({x: Math.random()*1000, y: 30+Math.random()*100, t: 30+Math.random()*40, v: 10+Math.random()*15});
             
-            const timerInterval = setInterval(() => {
-                if (jeuFini || jeuEnPause) return;
+            setInterval(() => {
+                if (jeuFini || jeuEnPause || !jeuDemarre) return;
                 timer--;
                 document.getElementById('time-bar').style.width = ((timer / DUREE_INITIALE) * 100) + '%';
                 if (timer <= 0) terminerJeu();
@@ -347,7 +344,6 @@
                 questionActive++;
                 setTimeout(genererQuestion, 1500);
             } else {
-                // Mise en pause du jeu et affichage de la bonne réponse
                 jeuEnPause = true;
                 document.getElementById('error-screen').classList.remove('hidden');
                 document.getElementById('correct-question-display').innerText = document.getElementById('question-text').innerText;
@@ -416,7 +412,14 @@
         function draw() {
             ctx.clearRect(0, 0, baseWidth, baseHeight);
             
-            // Dessin des nuages plus réalistes
+            // 1. Fond forêt
+            if (foretLoaded) {
+                ctx.drawImage(foretImage, 0, 0, baseWidth, baseHeight);
+            } else {
+                ctx.fillStyle = '#4CAF50'; ctx.fillRect(0, 600, 1000, 150);
+            }
+
+            // 2. Nuages (par-dessus la forêt)
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; 
             nuages.forEach(n => { 
                 ctx.beginPath(); 
@@ -426,12 +429,17 @@
                 ctx.arc(n.x + n.t*0.7, n.y + n.t*0.3, n.t*0.7, 0, Math.PI*2);
                 ctx.fill(); 
             });
-            
-            ctx.fillStyle = '#4CAF50'; ctx.fillRect(0, 600, 1000, 150);
+
+            // 3. Fumée (pour repérer les feux)
             particulesFumee.forEach(p => { ctx.fillStyle = `rgba(100, 100, 100, ${p.o})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.t, 0, Math.PI*2); ctx.fill(); });
-            ctx.fillStyle = '#ff4500'; feux.forEach(f => { ctx.beginPath(); ctx.moveTo(f.x-f.i, f.y); ctx.lineTo(f.x, f.y-f.i*2); ctx.lineTo(f.x+f.i, f.y); ctx.fill(); });
+            
+            // Note: Les triangles rouges (feux) ont été supprimés ici pour ne laisser que la fumée.
+            
+            // 4. Gouttes
             ctx.fillStyle = '#3b82f6'; gouttes.forEach(g => { ctx.beginPath(); ctx.ellipse(g.x, g.y, 4, 8, 0, 0, Math.PI*2); ctx.fill(); });
-            if (helicoImageLoaded) {
+            
+            // 5. Hélicoptère
+            if (helicoLoaded) {
                 ctx.drawImage(helicoImage, helico.x-80, helico.y-40, 160, 80);
             } else {
                 ctx.fillStyle = 'red'; ctx.fillRect(helico.x-40, helico.y-15, 80, 30);
